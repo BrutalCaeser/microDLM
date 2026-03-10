@@ -2,7 +2,7 @@
 
 **A from-scratch discrete diffusion language model on Tiny Shakespeare**
 
-Built step-by-step to understand how discrete diffusion works for text generation — and how it compares to the familiar GPT (autoregressive) approach. Every line is written for clarity, not cleverness.
+Built step-by-step to understand how discrete diffusion works for text generation — and how it compares to the familiar GPT (autoregressive) approach.
 
 <p align="center">
   <img src="https://img.shields.io/badge/PyTorch-2.0+-ee4c2c?logo=pytorch" alt="PyTorch">
@@ -208,8 +208,8 @@ microdiffusion/
 │   ├── diffusion.pt           ← Trained diffusion model (41 MB)
 │   ├── gpt.pt                 ← Trained GPT model (41 MB)
 │   └── training_log.json      ← All training curves
-└── blog/
-    └── post.md                ← Walkthrough blog post
+└── assets/
+    └── race.gif               ← Demo animation for README
 ```
 
 ---
