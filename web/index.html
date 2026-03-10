@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔬 MicroDiffusion LM — Diffusion vs GPT Race</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+</head>
+<body>
+
+  <!-- ─── Hero ─── -->
+  <header class="hero">
+    <h1>🔬 MicroDiffusion LM</h1>
+    <p class="subtitle">Discrete Diffusion vs GPT — same architecture, same data, different generation</p>
+    <div class="badges">
+      <span class="badge badge-red">PyTorch 2.0+</span>
+      <span class="badge badge-blue">10.7M params</span>
+      <span class="badge badge-green">Tiny Shakespeare</span>
+      <span class="badge badge-purple">6L / 6H / 384E</span>
+    </div>
+  </header>
+
+  <!-- ─── Controls ─── -->
+  <section class="controls">
+    <button id="btn-generate" class="btn-primary" disabled>
+      <span class="btn-icon">▶</span>
+      <span class="btn-text">Loading…</span>
+    </button>
+    <div class="speed-control">
+      <label for="speed">Speed</label>
+      <input type="range" id="speed" min="1" max="100" value="40">
+      <span id="speed-label">40ms</span>
+    </div>
+  </section>
+
+  <!-- ─── Race Arena ─── -->
+  <section class="race-arena" id="race-arena">
+
+    <!-- Diffusion Panel -->
+    <div class="panel panel-diffusion">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">🎨</span>
+          <span>DIFFUSION</span>
+          <span class="panel-badge" id="diff-status">Ready</span>
+        </div>
+        <span class="panel-subtitle">Parallel unmasking — reveals by confidence</span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar progress-bar-diff" id="diff-progress" style="width: 0%"></div>
+        <span class="progress-text" id="diff-progress-text">0 / 224</span>
+      </div>
+      <pre class="output-text" id="diff-output"><span class="placeholder">Click Generate to start the race</span></pre>
+    </div>
+
+    <!-- GPT Panel -->
+    <div class="panel panel-gpt">
+      <div class="panel-header">
+        <div class="panel-title">
+          <span class="panel-icon">⌨️</span>
+          <span>GPT</span>
+          <span class="panel-badge" id="gpt-status">Ready</span>
+        </div>
+        <span class="panel-subtitle">Sequential left-to-right — one token at a time</span>
+      </div>
+      <div class="progress-bar-container">
+        <div class="progress-bar progress-bar-gpt" id="gpt-progress" style="width: 0%"></div>
+        <span class="progress-text" id="gpt-progress-text">0 / 224</span>
+      </div>
+      <pre class="output-text" id="gpt-output"><span class="placeholder">Click Generate to start the race</span></pre>
+    </div>
+  </section>
+
+  <!-- ─── Speedup Banner (appears when diffusion finishes) ─── -->
+  <div class="speedup-banner" id="speedup-banner" hidden>
+    <span class="speedup-icon">⚡</span>
+    <span id="speedup-text"></span>
+  </div>
+
+  <!-- ─── Info Cards ─── -->
+  <section class="info-section">
+    <div class="info-card">
+      <h3>The 5 Changes from GPT → Diffusion</h3>
+      <table class="diff-table">
+        <thead>
+          <tr><th>#</th><th>What Changes</th><th>GPT</th><th>Diffusion</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>1</td><td>Vocabulary</td><td>Standard chars</td><td>+ 1 MASK token</td></tr>
+          <tr><td>2</td><td>Attention</td><td>Causal (sees left ←)</td><td>Bidirectional (sees all ↔)</td></tr>
+          <tr><td>3</td><td>Training</td><td>Predict next token</td><td>Denoise masked tokens</td></tr>
+          <tr><td>4</td><td>Loss scope</td><td>All positions</td><td>Masked positions only</td></tr>
+          <tr><td>5</td><td>Generation</td><td>Sequential L→R</td><td>Parallel by confidence</td></tr>
+        </tbody>
+      </table>
+      <p class="card-footer">Same transformer, same RoPE, same RMSNorm, same ReluSquared MLP. <strong>~80% of the code is shared.</strong></p>
+    </div>
+
+    <div class="info-card">
+      <h3>How It Works</h3>
+      <div class="how-it-works">
+        <div class="how-col">
+          <h4>🎨 Diffusion</h4>
+          <p>Starts from <strong>all masks</strong>. At each step, the model sees the <em>entire</em> sequence (bidirectional) and predicts all positions simultaneously. It reveals the most <strong>confident</strong> predictions first — spaces and common patterns emerge before ambiguous positions.</p>
+          <p class="step-count" id="diff-step-count">~39 steps</p>
+        </div>
+        <div class="how-col">
+          <h4>⌨️ GPT</h4>
+          <p>Starts from a <strong>prompt</strong>. The model can only see tokens to its <em>left</em> (causal attention) and generates strictly one token at a time, left to right. Like typing on a keyboard.</p>
+          <p class="step-count" id="gpt-step-count">~225 steps</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-card">
+      <h3>⚠️ Honest Assessment</h3>
+      <p><strong>GPT produces better text quality than diffusion at this scale.</strong> This is expected — diffusion gets ~50% training signal per batch (masked tokens only), and has a train-test distribution gap. The quality gap narrows at larger scale (<a href="https://arxiv.org/abs/2406.07524" target="_blank">MDLM</a>, <a href="https://arxiv.org/abs/2310.16834" target="_blank">SEDD</a>).</p>
+      <p>What diffusion <em>does</em> demonstrate: <strong>~6× fewer forward passes</strong>, parallel decoding, and a fundamentally different approach to language modeling.</p>
+    </div>
+  </section>
+
+  <!-- ─── Footer ─── -->
+  <footer>
+    <p>
+      <a href="https://github.com/BrutalCaeser/microDLM" target="_blank">GitHub</a>
+      · Built from scratch with PyTorch
+      · <span id="meta-info">Loading…</span>
+    </p>
+  </footer>
+
+  <script src="race.js"></script>
+</body>
+</html>
