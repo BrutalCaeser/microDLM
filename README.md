@@ -18,6 +18,12 @@ Built step-by-step to understand how discrete diffusion works for text generatio
   <em>Same architecture, same data — diffusion finishes in <strong>39 steps</strong> vs GPT's <strong>225 steps</strong></em>
 </p>
 
+<p align="center">
+  <a href="https://brutalcaeser.github.io/microDLM/"><strong>🌐 Live Web Demo →</strong></a>
+  &nbsp;&nbsp;|&nbsp;&nbsp;
+  <em>Click "Generate" and watch the race in your browser</em>
+</p>
+
 ---
 
 ## What is this?
@@ -209,6 +215,12 @@ microDLM/
 │   ├── step0_masking.py       ← Forward process only (no neural net)
 │   ├── step1_denoise_mlp.py   ← MLP denoiser (proves training loop)
 │   └── step2_transformer.py   ← Bidirectional transformer (quality jump)
+├── web/                       ← Static web demo (GitHub Pages)
+│   ├── index.html             ← Race visualization UI
+│   ├── style.css              ← Dark terminal theme
+│   ├── race.js                ← Animation engine
+│   ├── frames.json            ← Pre-computed frames (112 KB)
+│   └── export_frames.py       ← Script to regenerate frames.json
 ├── colab_training.ipynb       ← Full training on Colab (optional)
 └── assets/
     └── race.gif               ← Demo animation for README
