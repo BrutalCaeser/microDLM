@@ -12,7 +12,7 @@ Built step-by-step to understand how discrete diffusion works for text generatio
 </p>
 
 <p align="center">
-  <img src="assets/demo.gif" alt="Diffusion vs GPT generation race — diffusion finishes ~6× faster" width="800">
+  <img src="assets/race.gif" alt="Diffusion vs GPT generation race — diffusion finishes ~6× faster" width="800">
 </p>
 <p align="center">
   <em>Same architecture, same data — diffusion finishes in <strong>39 steps</strong> vs GPT's <strong>225 steps</strong></em>
@@ -83,6 +83,26 @@ All models trained on **Tiny Shakespeare** (~1.1M characters, 65 unique + 1 MASK
 - **Diffusion generalizes much better** — train 1.93, val 2.09. The random masking acts as a natural regularizer (each training step shows a different corruption pattern).
 - **The loss numbers aren't directly comparable** — diffusion loss is only over masked positions (harder), while GPT loss is over all positions (includes easy next-character predictions).
 - **The MLP → Transformer jump** (3.31 → 2.16) proves that attention is essential — the MLP processes each position independently and can only learn character frequencies.
+
+### ⚠️ Honest Assessment: Output Quality
+
+**GPT produces better text than diffusion at this scale.** This is expected and well-documented in the literature:
+
+| Factor | Diffusion | GPT |
+|--------|-----------|-----|
+| **Training signal** | ~50% of tokens per batch (masked only) | 100% of tokens per batch |
+| **Train-test gap** | Trains on corrupted input, generates from own predictions | Trains on ground-truth prefixes, generates the same way |
+| **Val loss** | 2.09 | 4.09 (overfits, but memorized text is fluent) |
+| **Generation** | Must get global structure right simultaneously | Each token conditioned on (mostly correct) left context |
+
+Discrete diffusion LMs typically need **3-5× more training** to match autoregressive quality at small scale. The quality gap narrows significantly at larger scale (see [MDLM](https://arxiv.org/abs/2406.07524), [SEDD](https://arxiv.org/abs/2310.16834)).
+
+**What diffusion demonstrates here:**
+- ⚡ **~6× fewer forward passes** for generation (39 vs 225 steps)
+- 🔀 Parallel decoding — tokens appear everywhere simultaneously
+- 🧩 A fundamentally different approach to language modeling
+
+The speed advantage is real. The quality gap is real. Both are worth understanding.
 
 ---
 

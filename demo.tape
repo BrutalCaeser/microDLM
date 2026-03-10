@@ -12,16 +12,17 @@ Set Padding 16
 Set Theme "Catppuccin Mocha"
 Set TypingSpeed 0
 
-# Hide the command execution and model loading
+# Hide everything: command, model loading, precomputation, "Press Enter"
 Hide
-Type "python visualize.py --delay 0.02"
+Type "python visualize.py --delay 0.035"
 Enter
 Sleep 9s
 Enter
 Show
 
-# Race: 225 frames × 0.02s ≈ 4.5s + buffer
-Sleep 6s
+# Race: 225 frames × 0.035s ≈ 7.9s + buffer
+Sleep 9s
 
-# Hold on comparison summary for viewers to read
-Sleep 6s
+# Hide the comparison summary — we only want the race
+Hide
+Sleep 3s

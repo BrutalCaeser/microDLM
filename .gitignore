@@ -21,6 +21,11 @@ weights/*.pt
 # OS
 .DS_Store
 Thumbs.db
+._*
+
+# Private files
+blog/
+microdiffusion_build_plan.md
 
 # Logs
 *.log
