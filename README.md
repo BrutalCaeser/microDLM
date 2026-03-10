@@ -110,7 +110,7 @@ The speed advantage is real. The quality gap is real. Both are worth understandi
 
 This project is built incrementally, where each step teaches one concept:
 
-### Step 0: Forward Process (`step0_masking.py`)
+### Step 0: Forward Process (`steps/step0_masking.py`)
 > *"Before you build the neural net, understand the math."*
 
 - Implements the cosine noise schedule: $\alpha(t) = \cos(\pi t / 2)$
@@ -118,7 +118,7 @@ This project is built incrementally, where each step teaches one concept:
 - Verifies: at $t=0$ nothing is masked, at $t=1$ everything is masked
 - No neural network — just masking and statistics
 
-### Step 1: MLP Denoiser (`step1_denoise_mlp.py`)
+### Step 1: MLP Denoiser (`steps/step1_denoise_mlp.py`)
 > *"Prove the training loop works with the simplest possible model."*
 
 - Simple MLP: embedding → ReLU → ReLU → output
@@ -126,7 +126,7 @@ This project is built incrementally, where each step teaches one concept:
 - Learns character frequencies but **cannot use context**
 - Loss: 4.19 → 3.31 (learns that 'e' and space are common, but nothing more)
 
-### Step 2: Transformer Denoiser (`step2_transformer.py`)
+### Step 2: Transformer Denoiser (`steps/step2_transformer.py`)
 > *"Replace the MLP with a transformer. See the quality jump."*
 
 - Bidirectional self-attention (`is_causal=False`) — the key difference from GPT
@@ -195,22 +195,28 @@ Linear Head ──→ (B, T, 66)  ──→  logits over vocabulary
 ## Repository Structure
 
 ```
-microdiffusion/
-├── README.md                  ← You are here
-├── step0_masking.py           ← Forward process only (no neural net)
-├── step1_denoise_mlp.py       ← MLP denoiser (proves training loop)
-├── step2_transformer.py       ← Bidirectional transformer (quality jump)
-├── colab_training.ipynb       ← Full training: scale up + GPT comparison
-├── visualize.py               ← Terminal animation: diffusion vs GPT
+microDLM/
+├── diffusion.py               ← Diffusion LM in one file (370 lines)
+├── gpt.py                     ← GPT baseline in one file (319 lines)
+├── visualize.py               ← Terminal animation: diffusion vs GPT race
+├── README.md
 ├── data/
 │   └── shakespeare.txt        ← Tiny Shakespeare (~1.1MB)
 ├── weights/
 │   ├── diffusion.pt           ← Trained diffusion model (41 MB)
-│   ├── gpt.pt                 ← Trained GPT model (41 MB)
-│   └── training_log.json      ← All training curves
+│   └── gpt.pt                 ← Trained GPT model (41 MB)
+├── steps/                     ← Progressive build (educational)
+│   ├── step0_masking.py       ← Forward process only (no neural net)
+│   ├── step1_denoise_mlp.py   ← MLP denoiser (proves training loop)
+│   └── step2_transformer.py   ← Bidirectional transformer (quality jump)
+├── colab_training.ipynb       ← Full training on Colab (optional)
 └── assets/
     └── race.gif               ← Demo animation for README
 ```
+
+The two top-level files are self-contained — each one has data loading, model
+definition, training loop, and generation. `diff diffusion.py gpt.py` and you
+see exactly the 5 changes.
 
 ---
 
@@ -219,7 +225,7 @@ microdiffusion/
 ### 1. Clone & Setup
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/microDLM.git
+git clone https://github.com/BrutalCaeser/microDLM.git
 cd microDLM
 
 # Python 3.10+ required. Install PyTorch:
@@ -234,24 +240,25 @@ wget -O data/shakespeare.txt \
   https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshakespeare/input.txt
 ```
 
-### 3. Run the Steps Locally
+### 3. Train & Generate
 
 ```bash
-# Step 0: Understand the forward process (no GPU needed)
-python step0_masking.py
+# Train diffusion LM (~47 min on T4 GPU, ~2h on MPS)
+python diffusion.py --train
 
-# Step 1: Train MLP denoiser (~6 min on CPU/MPS)
-python step1_denoise_mlp.py
+# Generate text with trained model
+python diffusion.py --generate
 
-# Step 2: Train small transformer (~7 min on MPS, ~2 min on GPU)
-python step2_transformer.py
+# Train and generate in one go
+python diffusion.py --train --generate
+
+# Same for GPT (~24 min on T4 GPU)
+python gpt.py --train --generate
 ```
 
-### 4. Train Final Models (GPU recommended)
+Or train both on Colab: upload `colab_training.ipynb` → Runtime → GPU → run all cells (~70 min on T4). Download weights to `weights/`.
 
-Upload `colab_training.ipynb` to Google Colab (Runtime → GPU) and run all cells. Training takes ~70 minutes total on a T4. Download the weights to `weights/`.
-
-### 5. Visualize
+### 4. Visualize
 
 ```bash
 # Animated race — diffusion finishes ~6× faster than GPT!
@@ -262,9 +269,19 @@ python visualize.py --no-animate
 
 # Only diffusion, longer output
 python visualize.py --diffusion-only --length 500
+```
 
-# Slower animation to study the process
-python visualize.py --delay 0.05
+### 5. Walk Through the Steps (optional)
+
+```bash
+# Step 0: Understand the forward process (no GPU needed)
+python steps/step0_masking.py
+
+# Step 1: Train MLP denoiser (~6 min on CPU/MPS)
+python steps/step1_denoise_mlp.py
+
+# Step 2: Train small transformer (~7 min on MPS, ~2 min on GPU)
+python steps/step2_transformer.py
 ```
 
 ---
