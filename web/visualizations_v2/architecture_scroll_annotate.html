@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPT vs Diffusion — Architecture</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#08080b;--fg:#c8c8d0;--dim:#8a8a98;--dim2:#1e1e28;
+  --gpt:#d4915a;--gpt-bg:rgba(212,145,90,0.07);--gpt-ln:rgba(212,145,90,0.3);
+  --diff:#5a9abf;--diff-bg:rgba(90,154,191,0.07);--diff-ln:rgba(90,154,191,0.3);
+}
+body{background:var(--bg);color:var(--fg);font-family:'DM Mono',monospace;overflow-x:hidden}
+
+/* ── Scroll structure ── */
+.scroll-wrap{position:relative;height:800vh}
+.vp{position:sticky;top:0;height:100vh;width:100%;overflow:hidden;display:flex;align-items:center;justify-content:center}
+
+/* ── Architecture origin ── */
+.origin{position:absolute;top:50%;left:50%}
+
+/* ── Layer blocks ── */
+.L{
+  position:absolute;border-radius:5px;
+  border:1px solid rgba(255,255,255,0.15);
+  background:rgba(255,255,255,0.05);
+  display:flex;align-items:center;justify-content:center;
+  will-change:transform,opacity,border-color,background;
+}
+.L::before{
+  content:'';position:absolute;inset:0;border-radius:4px;pointer-events:none;
+  background:repeating-linear-gradient(90deg,transparent 0 10px,rgba(255,255,255,0.015) 10px 11px),
+             repeating-linear-gradient(0deg,transparent 0 6px,rgba(255,255,255,0.01) 6px 7px);
+}
+.L .n{
+  position:relative;z-index:1;font-size:9px;letter-spacing:.07em;
+  color:rgba(255,255,255,0.45);text-transform:uppercase;white-space:nowrap;
+  will-change:color;
+}
+/* Ports */
+.L .pt,.L .pb{position:absolute;left:50%;width:6px;height:3px;background:rgba(255,255,255,0.05);transform:translateX(-50%);border-radius:1px}
+.L .pt{top:-2px}.L .pb{bottom:-2px}
+
+/* ── Attention grids inside split blocks ── */
+.ag{position:absolute;top:50%;right:12px;transform:translateY(-50%);opacity:0;will-change:opacity}
+.ag svg{display:block}
+
+/* ── Annotation labels ── */
+.lb{
+  position:absolute;font-size:10px;letter-spacing:.06em;
+  color:rgba(255,255,255,0);white-space:nowrap;will-change:color;
+}
+.lb.l{text-align:right}
+.lb.r{text-align:left}
+.lb .dt{
+  display:inline-block;padding:1px 5px;border-radius:3px;
+  font-size:8px;letter-spacing:.1em;font-weight:500;margin-bottom:2px;
+}
+.dt.g{background:var(--gpt-bg);color:var(--gpt);border:1px solid rgba(212,145,90,.15)}
+.dt.d{background:var(--diff-bg);color:var(--diff);border:1px solid rgba(90,154,191,.15)}
+
+/* ── Annotation lines (simple divs) ── */
+.ln{
+  position:absolute;height:1px;
+  background:rgba(255,255,255,0.08);
+  transform-origin:left center;
+  will-change:transform,background;
+}
+.ln.from-r{transform-origin:right center}
+
+/* ── Titles ── */
+.tt{position:absolute;will-change:opacity,transform;pointer-events:none}
+.t1{top:11%;left:50%;transform:translateX(-50%);text-align:center}
+.t1 .badge{display:inline-block;padding:4px 14px;border:1px solid var(--dim2);border-radius:20px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-bottom:16px}
+.t1 h1{font-family:'Instrument Serif',serif;font-size:clamp(30px,5vw,58px);font-weight:400;line-height:1.15;margin-bottom:10px}
+.t1 h1 em{font-style:italic}
+.t1 .cg{color:var(--gpt)}.t1 .cd{color:var(--diff)}
+.t1 p{font-size:12px;color:var(--dim);letter-spacing:.04em;line-height:1.7}
+
+.t2{top:7%;left:50%;transform:translateX(-50%);text-align:center;opacity:0}
+.t2 h2{font-family:'Instrument Serif',serif;font-size:clamp(22px,3.2vw,38px);font-weight:400;line-height:1.2}
+
+.t3{bottom:9%;left:50%;transform:translateX(-50%);text-align:center;opacity:0}
+.t3 p{font-size:12px;line-height:1.9;color:var(--dim)}
+.hl{color:var(--fg)}
+
+/* ── Progress ── */
+.prog{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);width:min(360px,55vw);height:2px;background:var(--dim2);border-radius:1px;z-index:100;overflow:hidden}
+.prog-f{height:100%;width:0%;background:linear-gradient(90deg,var(--gpt),var(--diff));border-radius:1px}
+
+/* ── Scroll hint ── */
+.sh{position:absolute;bottom:44px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:6px;font-size:9px;color:var(--dim);letter-spacing:.14em;text-transform:uppercase}
+.sh-l{width:1px;height:28px;background:linear-gradient(to bottom,transparent,var(--dim));animation:sp 2s ease-in-out infinite}
+@keyframes sp{0%,100%{opacity:.3;transform:scaleY(.6)}50%{opacity:1;transform:scaleY(1)}}
+
+/* Bracket for ×6 */
+.bracket{position:absolute;border:1px solid rgba(255,255,255,0.06);border-right:none;border-radius:4px 0 0 4px;opacity:0;will-change:opacity}
+.bracket-label{position:absolute;font-size:9px;color:rgba(255,255,255,0.15);letter-spacing:.1em;transform:rotate(-90deg);white-space:nowrap;opacity:0;will-change:opacity}
+</style>
+</head>
+<body>
+<div class="scroll-wrap">
+<div class="vp" id="vp">
+
+<div class="tt t1" id="t1">
+  <div class="badge">6L / 6H / 384E / ~10.7M params / Tiny Shakespeare</div>
+  <h1>Two Ways to<br><em class="cg">Generate</em> Text</h1>
+  <p>Same transformer. Same data. Same size.<br>Five differences that change everything.</p>
+</div>
+
+<div class="tt t2" id="t2">
+  <h2><span class="cg">Causal</span> &nbsp;↔&nbsp; <span class="cd">Bidirectional</span></h2>
+  <p style="color:var(--dim);margin-top:6px;font-size:11px">One flag in the attention layer separates two paradigms</p>
+</div>
+
+<div class="tt t3" id="t3">
+  <p>GPT asks: <span class="cg">"What comes next?"</span><br>
+  Diffusion asks: <span class="cd">"What's missing?"</span><br><br>
+  <span class="hl">Same bones. Different philosophy.</span></p>
+</div>
+
+<div class="sh" id="sh"><div class="sh-l"></div>scroll</div>
+<div class="origin" id="O"></div>
+</div>
+</div>
+<div class="prog"><div class="prog-f" id="pf"></div></div>
+
+<script>
+const O = document.getElementById('O');
+
+// ═══════════════════════════════════════════════════════════
+// DATA
+// ═══════════════════════════════════════════════════════════
+const layers = [
+  {id:'out', name:'Output',               w:170,h:28},
+  {id:'hd',  name:'LM Head → Logits',     w:240,h:34, diff:4},
+  {id:'n2',  name:'Final RMSNorm',        w:210,h:24},
+  {id:'mlp', name:'ReluSquared MLP',      w:260,h:40},
+  {id:'att', name:'Multi-Head Attention',  w:290,h:48, diff:2},
+  {id:'n1',  name:'RMSNorm + RoPE',       w:210,h:24},
+  {id:'emb', name:'Token Embedding',       w:240,h:34},
+  {id:'inp', name:'Input Tokens',          w:170,h:28, diff:1},
+];
+
+// Compute Y positions
+const gapA=2, gapE=20;
+function stackPositions(gap){
+  const total=layers.reduce((s,l)=>s+l.h+gap,0)-gap;
+  let y=-total/2;
+  return layers.map(l=>{const cy=y+l.h/2; y+=l.h+gap; return cy;});
+}
+const posA=stackPositions(gapA);
+const posE=stackPositions(gapE);
+layers.forEach((l,i)=>{l.ya=posA[i]; l.ye=posE[i];});
+
+// ═══════════════════════════════════════════════════════════
+// BUILD LAYER ELEMENTS
+// ═══════════════════════════════════════════════════════════
+const dom={};
+
+layers.forEach(l=>{
+  const el=document.createElement('div');
+  el.className='L'; el.id='L-'+l.id;
+  Object.assign(el.style,{width:l.w+'px',height:l.h+'px',left:-l.w/2+'px',top:l.ya-l.h/2+'px'});
+  el.innerHTML=`<span class="n">${l.name}</span>`+(l.id!=='out'?'<div class="pt"></div>':'')+(l.id!=='inp'?'<div class="pb"></div>':'');
+  O.appendChild(el); dom[l.id]=el;
+});
+
+// ×6 bracket
+const attY=layers.find(l=>l.id==='att').ye, mlpY=layers.find(l=>l.id==='mlp').ye;
+const attH=layers.find(l=>l.id==='att').h, mlpH=layers.find(l=>l.id==='mlp').h;
+const bTop=mlpY-mlpH/2-6, bBot=attY+attH/2+6;
+const bracket=document.createElement('div');
+bracket.className='bracket'; bracket.id='bracket';
+Object.assign(bracket.style,{left:-170+'px',top:bTop+'px',width:'14px',height:(bBot-bTop)+'px'});
+O.appendChild(bracket);
+const bracketLbl=document.createElement('div');
+bracketLbl.className='bracket-label'; bracketLbl.id='bracketLbl';
+bracketLbl.textContent='× 6  LAYERS';
+Object.assign(bracketLbl.style,{left:-195+'px',top:((bTop+bBot)/2)+'px'});
+O.appendChild(bracketLbl);
+
+// ═══════════════════════════════════════════════════════════
+// SPLIT ATTENTION CLONES
+// ═══════════════════════════════════════════════════════════
+['gpt','dif'].forEach(side=>{
+  const ref=layers.find(l=>l.id==='att');
+  const el=document.createElement('div');
+  el.className='L'; el.id='L-att-'+side;
+  const w=ref.w*0.85;
+  Object.assign(el.style,{
+    width:w+'px', height:ref.h+'px',
+    left:-w/2+'px', top:ref.ye-ref.h/2+'px',
+    opacity:'0',
+    borderColor: side==='gpt'?'var(--gpt-ln)':'var(--diff-ln)',
+    background: side==='gpt'?'var(--gpt-bg)':'var(--diff-bg)',
+  });
+  const label = side==='gpt'?'Causal Attention':'Bidirectional Attention';
+  const color = side==='gpt'?'var(--gpt)':'var(--diff)';
+  el.innerHTML=`<span class="n" style="color:${color}">${label}</span>`;
+
+  // Attention grid
+  const gw=document.createElement('div');
+  gw.className='ag'; gw.id='ag-'+side;
+  const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('width','36');svg.setAttribute('height','36');svg.setAttribute('viewBox','0 0 36 36');
+  const c=6,cs=36/c;
+  for(let r=0;r<c;r++)for(let cc=0;cc<c;cc++){
+    const act=side==='gpt'?cc<=r:true;
+    const rc=document.createElementNS('http://www.w3.org/2000/svg','rect');
+    rc.setAttribute('x',cc*cs+.5);rc.setAttribute('y',r*cs+.5);
+    rc.setAttribute('width',cs-1);rc.setAttribute('height',cs-1);rc.setAttribute('rx','1');
+    rc.setAttribute('fill',act?(side==='gpt'?'#d4915a':'#5a9abf'):'rgba(255,255,255,0.015)');
+    rc.setAttribute('opacity',act?(.15+Math.random()*.35).toFixed(2):'.3');
+    svg.appendChild(rc);
+  }
+  gw.appendChild(svg);el.appendChild(gw);
+  O.appendChild(el); dom['att_'+side]=el;
+});
+
+// ═══════════════════════════════════════════════════════════
+// ANNOTATION LABELS + LINES
+// ═══════════════════════════════════════════════════════════
+function addAnno(id, text, layerId, side, dist, isHtml, phase){
+  const ref = layers.find(l=>l.id===layerId) || {ye:0,w:0};
+  const ye = ref.ye || 0;
+
+  // Label
+  const lb=document.createElement('div');
+  lb.className='lb '+(side==='l'?'l':'r');
+  lb.id='lb-'+id;
+  if(isHtml) lb.innerHTML=text; else lb.textContent=text;
+  const labelX = side==='l' ? -(dist+8) : dist+8;
+  Object.assign(lb.style,{top:ye-7+'px'});
+  if(side==='l') lb.style.right = -labelX+'px';
+  else lb.style.left = labelX+'px';
+  O.appendChild(lb);
+
+  // Line
+  const ln=document.createElement('div');
+  ln.className='ln'+(side==='r'?' from-r':'');
+  ln.id='ln-'+id;
+  const layerEdge = side==='l' ? -ref.w/2 : ref.w/2;
+  const lineStart = side==='l' ? labelX+4 : layerEdge;
+  const lineEnd = side==='l' ? layerEdge : labelX-4;
+  const lineW = Math.abs(lineEnd-lineStart);
+  Object.assign(ln.style,{
+    top: ye+'px',
+    left: Math.min(lineStart,lineEnd)+'px',
+    width: '0px',
+    maxWidth: lineW+'px',
+  });
+  ln.dataset.fullw = lineW;
+  O.appendChild(ln);
+
+  return {lb,ln,fullW:lineW};
+}
+
+// Phase 2: Shared labels
+const sharedAnnos = [
+  addAnno('inp','Input Tokens','inp','l',180),
+  addAnno('emb','Token Embedding (384-dim)','emb','l',210),
+  addAnno('n1','RoPE + RMSNorm','n1','l',190),
+  addAnno('att','Multi-Head Attention × 6','att','l',230),
+  addAnno('mlp','ReluSquared MLP × 6','mlp','r',220),
+  addAnno('n2','Final RMSNorm','n2','r',190),
+  addAnno('hd','LM Head → vocab logits','hd','r',220),
+  addAnno('out','Output','out','r',160),
+];
+
+// Phase 3+: DIFF labels
+const ref_att = layers.find(l=>l.id==='att');
+const diffAnnos = {
+  d2g: addAnno('d2g','<span class="dt g">GPT</span><br>is_causal = True','att','l',220,true),
+  d2d: addAnno('d2d','<span class="dt d">DIFFUSION</span><br>is_causal = False','att','r',220,true),
+  d1:  addAnno('d1','<span class="dt d">DIFF #1</span><br>+ MASK token (id=0)','inp','r',200,true),
+  d4:  addAnno('d4','<span class="dt d">DIFF #4</span><br>Loss: masked only','hd','l',240,true),
+};
+
+// ═══════════════════════════════════════════════════════════
+// TIMELINE
+// ═══════════════════════════════════════════════════════════
+const DUR=5000;
+const tl=anime.timeline({autoplay:false, easing:'easeInOutQuad'});
+
+// ── Phase 1: EXPLODE (0→1000) ──
+layers.forEach((l,i)=>{
+  tl.add({targets:'#L-'+l.id, top:[l.ya-l.h/2+'px', l.ye-l.h/2+'px'], duration:1000, easing:'easeInOutCubic'}, 0);
+});
+tl.add({targets:'#t1', opacity:[1,0], duration:500}, 300);
+tl.add({targets:'#sh', opacity:[1,0], duration:300}, 0);
+
+// ── Phase 2: ANNOTATE (1000→2200) ──
+sharedAnnos.forEach((a,i)=>{
+  const t=1000+i*110;
+  tl.add({targets:a.lb, color:['rgba(255,255,255,0)','rgba(255,255,255,0.4)'], duration:350}, t);
+  tl.add({targets:a.ln, width:['0px',a.fullW+'px'], duration:450, easing:'easeInOutCubic'}, t);
+});
+// Layer names brighten
+layers.forEach((l,i)=>{
+  tl.add({targets:'#L-'+l.id+' .n', color:['rgba(255,255,255,0.45)','rgba(255,255,255,0.75)'], duration:350}, 1000+i*110);
+  tl.add({targets:'#L-'+l.id, borderColor:['rgba(255,255,255,0.15)','rgba(255,255,255,0.3)'], duration:350}, 1000+i*110);
+});
+// Bracket
+tl.add({targets:'#bracket', opacity:[0,1], duration:400}, 1400);
+tl.add({targets:'#bracketLbl', opacity:[0,1], duration:400}, 1500);
+
+// ── Phase 3: SPLIT ATTENTION (2200→3400) ──
+// Fade shared attn label + line
+tl.add({targets:sharedAnnos[3].lb, color:'rgba(255,255,255,0)', duration:200}, 2200);
+tl.add({targets:sharedAnnos[3].ln, width:'0px', duration:200}, 2200);
+
+// Fade original attn layer
+tl.add({targets:'#L-att', opacity:[1,0], duration:300}, 2300);
+
+// Show split clones
+tl.add({targets:'#L-att-gpt', opacity:[0,1], duration:250}, 2350);
+tl.add({targets:'#L-att-gpt', translateX:[0,-150], duration:800, easing:'easeInOutCubic'}, 2350);
+tl.add({targets:'#L-att-dif', opacity:[0,1], duration:250}, 2400);
+tl.add({targets:'#L-att-dif', translateX:[0,150], duration:800, easing:'easeInOutCubic'}, 2400);
+
+// Grids fade in
+tl.add({targets:'#ag-gpt', opacity:[0,.85], duration:400}, 2800);
+tl.add({targets:'#ag-dif', opacity:[0,.85], duration:400}, 2850);
+
+// Split title
+tl.add({targets:'#t2', opacity:[0,1], duration:400}, 2500);
+
+// DIFF #2 labels + lines
+tl.add({targets:diffAnnos.d2g.lb, color:['rgba(255,255,255,0)','var(--gpt)'], duration:350}, 2900);
+tl.add({targets:diffAnnos.d2g.ln, width:['0px',diffAnnos.d2g.fullW+'px'], background:'var(--gpt-ln)', duration:450}, 2900);
+tl.add({targets:diffAnnos.d2d.lb, color:['rgba(255,255,255,0)','var(--diff)'], duration:350}, 3000);
+tl.add({targets:diffAnnos.d2d.ln, width:['0px',diffAnnos.d2d.fullW+'px'], background:'var(--diff-ln)', duration:450}, 3000);
+
+// ── Phase 4: OTHER DIFFS (3400→4400) ──
+// DIFF #1 — input layer
+tl.add({targets:'#L-inp', borderColor:'var(--diff-ln)', background:'var(--diff-bg)', duration:400}, 3400);
+// Fade shared input label
+tl.add({targets:sharedAnnos[0].lb, color:'rgba(255,255,255,0)', duration:200}, 3350);
+tl.add({targets:sharedAnnos[0].ln, width:'0px', duration:200}, 3350);
+tl.add({targets:diffAnnos.d1.lb, color:['rgba(255,255,255,0)','var(--diff)'], duration:350}, 3500);
+tl.add({targets:diffAnnos.d1.ln, width:['0px',diffAnnos.d1.fullW+'px'], background:'var(--diff-ln)', duration:450}, 3500);
+
+// DIFF #4 — head/loss
+tl.add({targets:'#L-hd', borderColor:'var(--diff-ln)', background:'var(--diff-bg)', duration:400}, 3700);
+tl.add({targets:sharedAnnos[6].lb, color:'rgba(255,255,255,0)', duration:200}, 3650);
+tl.add({targets:sharedAnnos[6].ln, width:'0px', duration:200}, 3650);
+tl.add({targets:diffAnnos.d4.lb, color:['rgba(255,255,255,0)','var(--diff)'], duration:350}, 3800);
+tl.add({targets:diffAnnos.d4.ln, width:['0px',diffAnnos.d4.fullW+'px'], background:'var(--diff-ln)', duration:450}, 3800);
+
+// ── Phase 5: SUMMARY (4400→5000) ──
+tl.add({targets:'#t2', opacity:[1,0], duration:250}, 4300);
+tl.add({targets:'#t3', opacity:[0,1], duration:500}, 4500);
+
+// Shared layers glow
+['n1','emb','mlp','n2'].forEach((id,i)=>{
+  tl.add({targets:'#L-'+id, borderColor:'rgba(255,255,255,0.25)', duration:300}, 4400+i*60);
+});
+
+// ═══════════════════════════════════════════════════════════
+// SCROLL → SEEK
+// ═══════════════════════════════════════════════════════════
+const wrap=document.querySelector('.scroll-wrap');
+const pf=document.getElementById('pf');
+let tk=false;
+
+function onScroll(){
+  if(tk)return; tk=true;
+  requestAnimationFrame(()=>{
+    const rect=wrap.getBoundingClientRect();
+    const scrollable=wrap.offsetHeight-window.innerHeight;
+    const scrolled=Math.max(0,-rect.top);
+    const p=Math.min(1,scrolled/scrollable);
+    tl.seek(p*DUR);
+    pf.style.width=(p*100)+'%';
+    tk=false;
+  });
+}
+
+window.addEventListener('scroll',onScroll,{passive:true});
+tl.seek(0);
+</script>
+</body>
+</html>

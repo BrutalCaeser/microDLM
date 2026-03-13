@@ -1,32 +1,52 @@
 # Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+*.egg
 *.egg-info/
+.eggs/
 dist/
 build/
-.eggs/
 
 # Virtual environments
 .venv/
 venv/
 env/
+.env
+.env.local
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
 
 # Model weights (large files)
 weights/*.pt
+weights/*.pth
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
 # OS
 .DS_Store
 Thumbs.db
 ._*
 
-# Private files
+# Private / local
 blog/
 microdiffusion_build_plan.md
 
-# Logs
+# Logs and caches
 *.log
-._*
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Optional: uncomment to ignore training logs (they can get large)
+# weights/*.json

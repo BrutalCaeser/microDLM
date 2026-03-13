@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🔬 MicroDiffusion LM Visualizations</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔬</text></svg>">
+</head>
+<body>
+  <!-- ─── Header ─── -->
+  <header class="hero">
+    <h1>🔬 MicroDiffusion LM Visualizations</h1>
+    <p class="subtitle">Interactive animations showcasing the inner workings of discrete diffusion vs autoregressive language models</p>
+    <div class="badges">
+      <span class="badge badge-blue">Anime.js Powered</span>
+      <span class="badge badge-green">Educational</span>
+      <span class="badge badge-purple">Data-Driven</span>
+    </div>
+  </header>
+
+  <!-- ─── Navigation ─── -->
+  <nav class="visualization-nav">
+    <div class="nav-container">
+      <button class="nav-btn active" data-vis="masking">Token Masking</button>
+      <button class="nav-btn" data-vis="attention">Attention Mechanism</button>
+      <button class="nav-btn" data-vis="training">Training Objective</button>
+      <button class="nav-btn" data-vis="loss">Loss Scope</button>
+      <button class="nav-btn" data-vis="generation">Generation Process</button>
+      <button class="nav-btn" data-vis="cosine">Cosine Schedule</button>
+      <button class="nav-btn" data-vis="confidence">Confidence-Based</button>
+      <button class="nav-btn" data-vis="transformer">Transformer Blocks</button>
+      <button class="nav-btn" data-vis="dataflow">Data Flow</button>
+      <button class="nav-btn" data-vis="overfitting">Overfitting vs Generalization</button>
+    </div>
+  </nav>
+
+  <!-- ─── Visualization Container ─── -->
+  <main class="visualization-container">
+    <!-- Token Masking Visualization -->
+    <section id="masking-vis" class="visualization active">
+      <div class="vis-header">
+        <h2>🎲 Token Masking Process</h2>
+        <p>How tokens are randomly masked during training with the cosine schedule</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div id="masking-grid" class="token-grid"></div>
+        </div>
+        <div class="controls">
+          <button id="masking-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Play</span>
+          </button>
+          <button id="masking-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+          <div class="slider-group">
+            <label for="masking-time">Time Step</label>
+            <input type="range" id="masking-time" min="0" max="100" value="0">
+            <span id="masking-time-value">0%</span>
+          </div>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>How It Works</h3>
+        <p>During training, tokens are randomly masked with a probability determined by the cosine schedule α(t) = cos(πt/2)². At t=0, no tokens are masked. At t=1, all tokens are masked. This creates a curriculum from easy to hard denoising tasks.</p>
+      </div>
+    </section>
+
+    <!-- Attention Mechanism Visualization -->
+    <section id="attention-vis" class="visualization">
+      <div class="vis-header">
+        <h2>👁️ Attention Mechanism Comparison</h2>
+        <p>Visualizing bidirectional (diffusion) vs causal (GPT) attention</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="attention-comparison">
+            <div class="attention-model">
+              <h4>🎨 Diffusion (Bidirectional)</h4>
+              <div id="diffusion-attention" class="attention-diagram"></div>
+            </div>
+            <div class="attention-model">
+              <h4>⌨️ GPT (Causal)</h4>
+              <div id="gpt-attention" class="attention-diagram"></div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="attention-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="attention-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Difference</h3>
+        <p>Diffusion models use <strong>bidirectional attention</strong> - each token can attend to all other tokens in the sequence. GPT uses <strong>causal attention</strong> - each token can only attend to previous tokens. This fundamental difference enables parallel generation in diffusion vs sequential generation in GPT.</p>
+      </div>
+    </section>
+
+    <!-- Training Objective Visualization -->
+    <section id="training-vis" class="visualization">
+      <div class="vis-header">
+        <h2>🎯 Training Objective Comparison</h2>
+        <p>Denoising masked tokens (diffusion) vs predicting next tokens (GPT)</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="training-comparison">
+            <div class="training-model">
+              <h4>🎨 Diffusion - Denoising Objective</h4>
+              <div id="diffusion-training" class="training-diagram">
+                <div class="sequence-container">
+                  <div class="token-sequence input-seq">
+                    <span class="token prompt">F</span>
+                    <span class="token prompt">i</span>
+                    <span class="token prompt">r</span>
+                    <span class="token prompt">s</span>
+                    <span class="token prompt">t</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="token-sequence output-seq">
+                    <span class="token prompt">F</span>
+                    <span class="token prompt">i</span>
+                    <span class="token prompt">r</span>
+                    <span class="token prompt">s</span>
+                    <span class="token prompt">t</span>
+                    <span class="token target">C</span>
+                    <span class="token target">i</span>
+                    <span class="token target">t</span>
+                    <span class="token target">i</span>
+                    <span class="token target">z</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="training-model">
+              <h4>⌨️ GPT - Prediction Objective</h4>
+              <div id="gpt-training" class="training-diagram">
+                <div class="sequence-container">
+                  <div class="token-sequence input-seq">
+                    <span class="token prompt">F</span>
+                    <span class="token prompt">i</span>
+                    <span class="token prompt">r</span>
+                    <span class="token prompt">s</span>
+                    <span class="token prompt">t</span>
+                    <span class="token prompt"> </span>
+                    <span class="token prompt">C</span>
+                    <span class="token prompt">i</span>
+                    <span class="token prompt">t</span>
+                    <span class="token current">i</span>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="token-sequence output-seq">
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token-placeholder"></span>
+                    <span class="token prediction">z</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="training-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Demonstrate</span>
+          </button>
+          <button id="training-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Difference</h3>
+        <p><strong>Diffusion</strong> trains to reconstruct the original sequence from a corrupted (masked) version. The model sees the entire sequence and learns to denoise all masked positions simultaneously.</p>
+        <p><strong>GPT</strong> trains to predict the next token given previous tokens. The model processes the sequence left-to-right and learns to predict one token at a time.</p>
+      </div>
+    </section>
+
+    <!-- Loss Scope Visualization -->
+    <section id="loss-vis" class="visualization">
+      <div class="vis-header">
+        <h2>📊 Loss Computation Scope</h2>
+        <p>Which tokens contribute to loss calculation in each approach</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="loss-comparison">
+            <div class="loss-model">
+              <h4>🎨 Diffusion - Masked Positions Only</h4>
+              <div id="diffusion-loss" class="loss-diagram">
+                <div class="token-sequence loss-seq">
+                  <span class="token prompt">F</span>
+                  <span class="token prompt">i</span>
+                  <span class="token prompt">r</span>
+                  <span class="token prompt">s</span>
+                  <span class="token prompt">t</span>
+                  <span class="token masked loss-inactive">·</span>
+                  <span class="token masked loss-inactive">·</span>
+                  <span class="token masked loss-active">·</span>
+                  <span class="token masked loss-inactive">·</span>
+                  <span class="token masked loss-inactive">·</span>
+                </div>
+                <div class="loss-indicator">
+                  <div class="loss-bar diffusion-loss">
+                    <div class="loss-fill" style="width: 20%"></div>
+                  </div>
+                  <span class="loss-value">20% of tokens</span>
+                </div>
+              </div>
+            </div>
+            <div class="loss-model">
+              <h4>⌨️ GPT - All Positions</h4>
+              <div id="gpt-loss" class="loss-diagram">
+                <div class="token-sequence loss-seq">
+                  <span class="token prompt loss-active">F</span>
+                  <span class="token prompt loss-active">i</span>
+                  <span class="token prompt loss-active">r</span>
+                  <span class="token prompt loss-active">s</span>
+                  <span class="token prompt loss-active">t</span>
+                  <span class="token normal loss-active"> </span>
+                  <span class="token normal loss-active">C</span>
+                  <span class="token normal loss-active">i</span>
+                  <span class="token normal loss-active">t</span>
+                  <span class="token normal loss-active">i</span>
+                </div>
+                <div class="loss-indicator">
+                  <div class="loss-bar gpt-loss">
+                    <div class="loss-fill" style="width: 100%"></div>
+                  </div>
+                  <span class="loss-value">100% of tokens</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="loss-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="loss-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Insight</h3>
+        <p><strong>Diffusion</strong> computes loss only on masked positions (typically ~50% of tokens per batch). This makes the training signal "harder" but acts as a natural regularizer.</p>
+        <p><strong>GPT</strong> computes loss on all positions, giving it a "richer" training signal but making it prone to overfitting without regularization.</p>
+      </div>
+    </section>
+
+    <!-- Generation Process Visualization -->
+    <section id="generation-vis" class="visualization">
+      <div class="vis-header">
+        <h2>🏎️ Generation Process Race</h2>
+        <p>Parallel unmasking (diffusion) vs sequential generation (GPT)</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="generation-race">
+            <div class="race-track diffusion-track">
+              <h4>🎨 Diffusion - Parallel Unmasking</h4>
+              <div class="track-container">
+                <div class="progress-path">
+                  <div class="progress-fill diffusion-fill" style="width: 0%"></div>
+                </div>
+                <div class="token-track" id="diffusion-track">
+                  <span class="token prompt">F</span>
+                  <span class="token prompt">i</span>
+                  <span class="token prompt">r</span>
+                  <span class="token prompt">s</span>
+                  <span class="token prompt">t</span>
+                  <span class="token masked">·</span>
+                  <span class="token masked">·</span>
+                  <span class="token masked">·</span>
+                  <span class="token masked">·</span>
+                  <span class="token masked">·</span>
+                </div>
+              </div>
+              <div class="step-counter">
+                <span class="steps">Steps: <span id="diffusion-steps">0</span>/5</span>
+                <span class="tokens">Tokens: <span id="diffusion-tokens">0</span>/5</span>
+              </div>
+            </div>
+            <div class="race-track gpt-track">
+              <h4>⌨️ GPT - Sequential Generation</h4>
+              <div class="track-container">
+                <div class="progress-path">
+                  <div class="progress-fill gpt-fill" style="width: 0%"></div>
+                </div>
+                <div class="token-track" id="gpt-track">
+                  <span class="token prompt">F</span>
+                  <span class="token prompt">i</span>
+                  <span class="token prompt">r</span>
+                  <span class="token prompt">s</span>
+                  <span class="token prompt">t</span>
+                  <span class="token empty"></span>
+                  <span class="token empty"></span>
+                  <span class="token empty"></span>
+                  <span class="token empty"></span>
+                  <span class="token empty"></span>
+                </div>
+              </div>
+              <div class="step-counter">
+                <span class="steps">Tokens: <span id="gpt-tokens">0</span>/5</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="generation-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Start Race</span>
+          </button>
+          <button id="generation-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+          <div class="slider-group">
+            <label for="generation-speed">Speed</label>
+            <input type="range" id="generation-speed" min="1" max="10" value="5">
+            <span id="generation-speed-value">5x</span>
+          </div>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Performance Comparison</h3>
+        <p><strong>Diffusion</strong> generates ~6× faster by revealing multiple tokens in parallel based on confidence. It takes only 5 steps to unmask 5 tokens.</p>
+        <p><strong>GPT</strong> generates sequentially, one token at a time. It takes 5 steps to generate 5 tokens, but each step is faster than diffusion steps.</p>
+        <p>The key advantage of diffusion is parallelism - it can process multiple positions simultaneously.</p>
+      </div>
+    </section>
+
+    <!-- Cosine Schedule Visualization -->
+    <section id="cosine-vis" class="visualization">
+      <div class="vis-header">
+        <h2>📉 Cosine Schedule Visualization</h2>
+        <p>Mathematical cosine schedule used in diffusion generation</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="cosine-visualization">
+            <div class="graph-container">
+              <canvas id="cosine-graph" width="600" height="300"></canvas>
+            </div>
+            <div class="schedule-explanation">
+              <div class="formula">
+                <p>α(t) = cos(πt/2)²</p>
+              </div>
+              <div class="schedule-controls">
+                <div class="time-slider">
+                  <label for="cosine-time">Time Progress</label>
+                  <input type="range" id="cosine-time" min="0" max="100" value="0">
+                  <span id="cosine-time-value">0%</span>
+                </div>
+                <div class="schedule-values">
+                  <div class="value-item">
+                    <span class="label">α(t):</span>
+                    <span class="value" id="alpha-value">1.00</span>
+                  </div>
+                  <div class="value-item">
+                    <span class="label">Mask Prob:</span>
+                    <span class="value" id="mask-prob-value">0.00</span>
+                  </div>
+                  <div class="value-item">
+                    <span class="label">Unmask Rate:</span>
+                    <span class="value" id="unmask-rate-value">0</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="cosine-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="cosine-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>How It Works</h3>
+        <p>The cosine schedule α(t) = cos(πt/2)² determines how many tokens to unmask at each step:</p>
+        <ul>
+          <li>At t=0: α=1, no tokens masked (clean text)</li>
+          <li>At t=1: α=0, all tokens masked (pure noise)</li>
+          <li>During generation: Tokens are unmasked according to the schedule's derivative</li>
+        </ul>
+        <p>This creates a smooth progression from noise to signal, with more tokens unmasked in the middle steps where the model is most confident.</p>
+      </div>
+    </section>
+
+    <!-- Confidence-Based Unmasking Visualization -->
+    <section id="confidence-vis" class="visualization">
+      <div class="vis-header">
+        <h2>🎯 Confidence-Based Unmasking</h2>
+        <p>How diffusion models reveal tokens based on prediction confidence</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="confidence-visualization">
+            <div class="token-grid" id="confidence-grid"></div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="confidence-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="confidence-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+          <div class="slider-group">
+            <label for="confidence-threshold">Confidence Threshold</label>
+            <input type="range" id="confidence-threshold" min="0" max="100" value="50">
+            <span id="confidence-threshold-value">50%</span>
+          </div>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Concept</h3>
+        <p>Diffusion models compute confidence scores for each masked token prediction. Tokens with confidence above a threshold are revealed simultaneously, enabling parallel generation. High-confidence predictions (green) are revealed first, followed by medium (yellow) and low (red) confidence predictions.</p>
+        <p>This approach allows diffusion models to generate multiple tokens in parallel while maintaining quality, unlike GPT's sequential left-to-right generation.</p>
+      </div>
+    </section>
+
+    <!-- Transformer Block Visualization -->
+    <section id="transformer-vis" class="visualization">
+      <div class="vis-header">
+        <h2>🧱 Transformer Block Architecture</h2>
+        <p>Comparing the internal structure of transformer blocks in diffusion vs GPT models</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="transformer-comparison">
+            <div class="transformer-model">
+              <h4>🎨 Diffusion Transformer Block</h4>
+              <div id="diffusion-transformer" class="transformer-diagram">
+                <div class="block-container">
+                  <div class="block-layer attention-layer">
+                    <div class="layer-label">Bidirectional Attention</div>
+                    <div class="layer-content">
+                      <div class="token-nodes">
+                        <div class="token-node prompt">T</div>
+                        <div class="token-node prompt">h</div>
+                        <div class="token-node prompt">e</div>
+                        <div class="token-node masked">·</div>
+                        <div class="token-node masked">·</div>
+                      </div>
+                      <div class="attention-connections">
+                        <!-- Connections will be drawn with JS -->
+                      </div>
+                    </div>
+                  </div>
+                  <div class="block-layer feedforward-layer">
+                    <div class="layer-label">Feed Forward Network</div>
+                    <div class="layer-content">
+                      <div class="ffn-nodes">
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="block-layer output-layer">
+                    <div class="layer-label">Layer Output</div>
+                    <div class="layer-content">
+                      <div class="token-sequence">
+                        <div class="token output">T</div>
+                        <div class="token output">h</div>
+                        <div class="token output">e</div>
+                        <div class="token output">·</div>
+                        <div class="token output">·</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="transformer-model">
+              <h4>⌨️ GPT Transformer Block</h4>
+              <div id="gpt-transformer" class="transformer-diagram">
+                <div class="block-container">
+                  <div class="block-layer attention-layer">
+                    <div class="layer-label">Causal Attention</div>
+                    <div class="layer-content">
+                      <div class="token-nodes">
+                        <div class="token-node prompt">T</div>
+                        <div class="token-node prompt">h</div>
+                        <div class="token-node prompt">e</div>
+                        <div class="token-node current">_</div>
+                        <div class="token-node future">?</div>
+                      </div>
+                      <div class="attention-connections">
+                        <!-- Connections will be drawn with JS -->
+                      </div>
+                    </div>
+                  </div>
+                  <div class="block-layer feedforward-layer">
+                    <div class="layer-label">Feed Forward Network</div>
+                    <div class="layer-content">
+                      <div class="ffn-nodes">
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                        <div class="ffn-node">FFN</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="block-layer output-layer">
+                    <div class="layer-label">Layer Output</div>
+                    <div class="layer-content">
+                      <div class="token-sequence">
+                        <div class="token output">T</div>
+                        <div class="token output">h</div>
+                        <div class="token output">e</div>
+                        <div class="token output">C</div>
+                        <div class="token output">?</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="transformer-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="transformer-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Differences</h3>
+        <p><strong>Diffusion Transformer Blocks</strong> use bidirectional attention, allowing each token to attend to all other tokens in the sequence. This enables parallel processing of all positions simultaneously.</p>
+        <p><strong>GPT Transformer Blocks</strong> use causal (unidirectional) attention, where each token can only attend to previous tokens. This enforces sequential processing from left to right.</p>
+        <p>Both architectures share the same feed-forward networks, but the attention mechanism fundamentally changes how information flows through the model.</p>
+      </div>
+    </section>
+
+        <!-- Data Flow Comparison Visualization -->
+    <section id="dataflow-vis" class="visualization">
+      <div class="vis-header">
+        <h2>🔄 Data Flow Comparison</h2>
+        <p>How data moves through diffusion vs autoregressive models during inference</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="dataflow-comparison">
+            <div class="dataflow-model">
+              <h4>🎨 Diffusion - Parallel Processing</h4>
+              <div id="diffusion-dataflow" class="dataflow-diagram">
+                <div class="sequence-container">
+                  <div class="token-sequence input-seq">
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                    <span class="token masked">·</span>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="processing-steps">
+                    <div class="step">
+                      <div class="step-label">Step 1</div>
+                      <div class="token-sequence">
+                        <div class="token data-packet high">A</div>
+                        <div class="token data-packet high">B</div>
+                        <div class="token data-packet high">C</div>
+                        <div class="token data-packet high">D</div>
+                        <div class="token data-packet high">E</div>
+                      </div>
+                    </div>
+                    <div class="step">
+                      <div class="step-label">Step 2</div>
+                      <div class="token-sequence">
+                        <div class="token data-packet medium">F</div>
+                        <div class="token data-packet medium">G</div>
+                        <div class="token data-packet medium">H</div>
+                        <div class="token data-packet medium">I</div>
+                        <div class="token data-packet medium">J</div>
+                      </div>
+                    </div>
+                    <div class="step">
+                      <div class="step-label">Step 3</div>
+                      <div class="token-sequence">
+                        <div class="token data-packet low">K</div>
+                        <div class="token data-packet low">L</div>
+                        <div class="token data-packet low">M</div>
+                        <div class="token data-packet low">N</div>
+                        <div class="token data-packet low">O</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="token-sequence output-seq">
+                    <div class="token output">H</div>
+                    <div class="token output">e</div>
+                    <div class="token output">l</div>
+                    <div class="token output">l</div>
+                    <div class="token output">o</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="dataflow-model">
+              <h4>⌨️ GPT - Sequential Processing</h4>
+              <div id="gpt-dataflow" class="dataflow-diagram">
+                <div class="sequence-container">
+                  <div class="token-sequence input-seq">
+                    <div class="token prompt">H</div>
+                    <div class="token prompt">e</div>
+                    <div class="token prompt">l</div>
+                    <div class="token prompt">l</div>
+                    <div class="token current">_</div>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="processing-steps">
+                    <div class="step">
+                      <div class="step-label">Step 1</div>
+                      <div class="token-sequence">
+                        <div class="token data-packet">H</div>
+                        <div class="token data-packet-arrow">→</div>
+                        <div class="token data-packet">e</div>
+                        <div class="token data-packet-arrow">→</div>
+                        <div class="token data-packet">l</div>
+                      </div>
+                    </div>
+                    <div class="step">
+                      <div class="step-label">Step 2</div>
+                      <div class="token-sequence">
+                        <div class="token data-packet">l</div>
+                        <div class="token data-packet-arrow">→</div>
+                        <div class="token data-packet">o</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="arrow">↓</div>
+                  <div class="token-sequence output-seq">
+                    <div class="token output">H</div>
+                    <div class="token output">e</div>
+                    <div class="token output">l</div>
+                    <div class="token output">l</div>
+                    <div class="token prediction">o</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="dataflow-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="dataflow-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Difference</h3>
+        <p><strong>Diffusion Models</strong> process all positions in parallel at each step. Data flows through the entire sequence simultaneously, with multiple tokens being processed and updated at once based on confidence levels.</p>
+        <p><strong>GPT Models</strong> process one position at a time, sequentially. Data flows from left to right, with each step generating one token that becomes input for the next step.</p>
+        <p>This fundamental difference in data flow enables diffusion models to leverage parallelism for faster generation while maintaining contextual awareness across the entire sequence.</p>
+      </div>
+    </section>
+
+        <!-- Overfitting vs Generalization Visualization -->
+    <section id="overfitting-vis" class="visualization">
+      <div class="vis-header">
+        <h2>⚖️ Overfitting vs Generalization</h2>
+        <p>Why diffusion models generalize better than autoregressive models</p>
+      </div>
+      <div class="vis-content">
+        <div class="animation-container">
+          <div class="overfitting-comparison">
+            <div class="overfitting-model">
+              <h4>🎨 Diffusion - Natural Regularization</h4>
+              <div id="diffusion-overfitting" class="overfitting-diagram">
+                <div class="chart-container">
+                  <canvas id="diffusion-chart" width="300" height="200"></canvas>
+                </div>
+                <div class="regularization-factors">
+                  <div class="factor">
+                    <div class="factor-icon">🎲</div>
+                    <div class="factor-label">Random Masking</div>
+                  </div>
+                  <div class="factor">
+                    <div class="factor-icon">🔒</div>
+                    <div class="factor-label">Position Loss</div>
+                  </div>
+                  <div class="factor">
+                    <div class="factor-icon">🎭</div>
+                    <div class="factor-label">No Autoregression</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="overfitting-model">
+              <h4>⌨️ GPT - Prone to Overfitting</h4>
+              <div id="gpt-overfitting" class="overfitting-diagram">
+                <div class="chart-container">
+                  <canvas id="gpt-chart" width="300" height="200"></canvas>
+                </div>
+                <div class="overfitting-factors">
+                  <div class="factor">
+                    <div class="factor-icon">🔁</div>
+                    <div class="factor-label">Autoregression</div>
+                  </div>
+                  <div class="factor">
+                    <div class="factor-icon">📈</div>
+                    <div class="factor-label">Full Sequence Loss</div>
+                  </div>
+                  <div class="factor">
+                    <div class="factor-icon">🎯</div>
+                    <div class="factor-label">Target Leakage</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="controls">
+          <button id="overfitting-play" class="btn-primary">
+            <span class="btn-icon">▶</span>
+            <span class="btn-text">Animate</span>
+          </button>
+          <button id="overfitting-reset" class="btn-secondary">
+            <span class="btn-text">Reset</span>
+          </button>
+        </div>
+      </div>
+      <div class="explanation">
+        <h3>Key Insight</h3>
+        <p><strong>Diffusion Models</strong> have built-in regularization through random masking, which forces the model to learn robust representations that work across different corruption levels. The position-specific loss computation prevents the model from memorizing sequences.</p>
+        <p><strong>GPT Models</strong> are prone to overfitting because they process sequences autoregressively, leading to target leakage where later tokens can indirectly "see" earlier targets through the model's internal representations. Without explicit regularization, they tend to memorize training data.</p>
+        <p>This fundamental difference explains why diffusion models can achieve better generalization with the same architecture and training data.</p>
+      </div>
+    </section>
+
+    <!-- More visualizations will be added here -->
+  </main>
+
+  <!-- ─── Footer ─── -->
+  <footer>
+    <p>
+      <a href="https://github.com/BrutalCaeser/microDLM" target="_blank">GitHub</a>
+      · Built with <a href="https://animejs.com" target="_blank">Anime.js</a>
+      · Part of MicroDiffusion LM Project
+    </p>
+  </footer>
+
+  <!-- Anime.js Library -->
+  <script src="anime.umd.min.js"></script>
+  <!-- Our Visualization Scripts -->
+  <script src="scripts.js"></script>
+</body>
+</html>
