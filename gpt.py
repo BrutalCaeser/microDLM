@@ -76,13 +76,27 @@ train_data, val_data = data[:n], data[n:]
 # Batching — Next-Token Prediction                             # ← DIFF 3/4
 # ============================================================================
 
+def _to_device(*tensors):
+    """Move tensors to device. Use pinned memory + non_blocking for CUDA so GPU
+    is not blocked waiting on transfer (enables overlap with next batch prep)."""
+    out = []
+    for t in tensors:
+        if device.type == "cuda":
+            t = t.pin_memory().to(device, non_blocking=True)
+        else:
+            t = t.to(device)
+        out.append(t)
+    return tuple(out)
+
+
 def get_batch(split):
-    """Standard autoregressive batching: x[i] → y[i] = x[i+1]."""
+    """Standard autoregressive batching: x[i] → y[i] = x[i+1].
+    Built on CPU; transferred to device with pinned+non_blocking when CUDA."""
     d = train_data if split == "train" else val_data
     idx = torch.randint(len(d) - block_size, (batch_size,))
     x = torch.stack([d[i : i + block_size] for i in idx])
     y = torch.stack([d[i + 1 : i + block_size + 1] for i in idx])
-    return x.to(device), y.to(device)
+    return _to_device(x, y)
 
 # ============================================================================
 # Model Components
@@ -212,11 +226,16 @@ def train():
     print(f"Training for {max_iters} iterations")
     print("=" * 60)
 
-    model = GPT().to(device)
+    # Phase 1: Build model and optimizer on CPU (no GPU use yet).
+    model = GPT()
     n_params = sum(p.numel() for p in model.parameters())
     print(f"Parameters: {n_params:,} ({n_params / 1e6:.1f}M)")
-
     optimizer = torch.optim.AdamW(model.parameters(), lr=learning_rate)
+
+    # Phase 2: Move model to GPU once; sync so we're in a clean state.
+    model.to(device)
+    if device.type == "cuda":
+        torch.cuda.synchronize()
     log = []
     start = time.time()
 
@@ -242,10 +261,12 @@ def train():
     print(f"\nDone in {total:.1f}s — train {log[-1]['train_loss']:.4f}, "
           f"val {log[-1]['val_loss']:.4f}")
 
-    # Save
+    # Phase 3: Offload model to CPU before save (free GPU during I/O).
     os.makedirs("weights", exist_ok=True)
+    model.cpu()
     torch.save(model.state_dict(), "weights/gpt.pt")
     print("Saved weights/gpt.pt")
+    model.to(device)  # back on device for any subsequent generate
 
     with open("weights/training_log_gpt.json", "w") as f:
         json.dump(log, f, indent=2)
@@ -304,8 +325,9 @@ if __name__ == "__main__":
             if not os.path.exists(path):
                 print(f"No weights found at {path}. Train first with --train")
                 sys.exit(1)
-            model = GPT().to(device)
-            model.load_state_dict(torch.load(path, map_location=device, weights_only=True))
+            model = GPT()
+            model.load_state_dict(torch.load(path, map_location="cpu", weights_only=True))
+            model.to(device)
             print(f"Loaded {path}")
 
         print("\n" + "=" * 60)
