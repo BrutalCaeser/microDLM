@@ -38,6 +38,7 @@ Thumbs.db
 
 # Private / local
 blog/
+docs/
 microdiffusion_build_plan.md
 
 # Logs and caches

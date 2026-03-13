@@ -2,9 +2,9 @@
 """
 diffusion.py — Discrete Diffusion Language Model from Scratch
 =============================================================
-A single-file implementation of a discrete (masked) diffusion language model
-trained on Tiny Shakespeare. Everything is here: data loading, model definition,
-training loop, and generation.
+A single-file implementation of a discrete (masked) diffusion language model.
+Train on Tiny Shakespeare (--data shakespeare) or OpenWebText (--data openwebtext).
+Everything is here: data loading, model definition, training loop, and generation.
 
 The entire model is ~10.7M parameters with the default 6L/6H/384E architecture.
 
@@ -50,30 +50,45 @@ device = (
     else ("mps" if torch.backends.mps.is_available() else "cpu")
 )
 
+# Parse --data before loading so we know which dataset to use
+_data_parser = argparse.ArgumentParser()
+_data_parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext"])
+_DATA_ARGS, _ = _data_parser.parse_known_args()
+DATA_SOURCE = _DATA_ARGS.data
+
 # ============================================================================
-# Data — Tiny Shakespeare
+# Data — Shakespeare or OpenWebText
 # ============================================================================
 
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "shakespeare.txt")
-with open(data_path, "r", encoding="utf-8") as f:
-    text = f.read()
+train_data = val_data = data = None
+_train_loader = _val_loader = None
+_train_iter = _val_iter = None
+_prompt_block = None  # used by generate() when DATA_SOURCE == "openwebtext"
 
-chars = sorted(list(set(text)))
-MASK_CHAR = "_"                                                # ← DIFF 1: mask token
-assert MASK_CHAR not in chars, "MASK_CHAR must not appear in data"
-chars_with_mask = [MASK_CHAR] + chars                          # index 0 = MASK
-vocab_size = len(chars_with_mask)                              # 66 (65 + 1 MASK)
-
-stoi = {ch: i for i, ch in enumerate(chars_with_mask)}
-itos = {i: ch for i, ch in enumerate(chars_with_mask)}
-mask_token_id = stoi[MASK_CHAR]                                # 0
-
-encode = lambda s: [stoi[ch] for ch in s]
-decode = lambda l: "".join([itos[i] for i in l])
-
-data = torch.tensor(encode(text), dtype=torch.long)
-n = int(0.9 * len(data))
-train_data, val_data = data[:n], data[n:]
+if DATA_SOURCE == "shakespeare":
+    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "shakespeare.txt")
+    with open(data_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    chars = sorted(list(set(text)))
+    MASK_CHAR = "_"                                            # ← DIFF 1: mask token
+    assert MASK_CHAR not in chars, "MASK_CHAR must not appear in data"
+    chars_with_mask = [MASK_CHAR] + chars
+    vocab_size = len(chars_with_mask)
+    stoi = {ch: i for i, ch in enumerate(chars_with_mask)}
+    itos = {i: ch for i, ch in enumerate(chars_with_mask)}
+    mask_token_id = stoi[MASK_CHAR]
+    encode = lambda s: [stoi[ch] for ch in s]
+    decode = lambda l: "".join([itos[i] for i in l])
+    data = torch.tensor(encode(text), dtype=torch.long)
+    n = int(0.9 * len(data))
+    train_data, val_data = data[:n], data[n:]
+else:
+    from data_openwebtext import load_openwebtext
+    _train_loader, _val_loader, stoi, itos, vocab_size, mask_token_id, encode, decode = load_openwebtext(
+        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
+    )
+    # Prompt for generation: first block from first val batch
+    _prompt_block = next(iter(_val_loader))[0][0].clone()
 
 # ============================================================================
 # Batching — Random Masking                                    # ← DIFF 3/4
@@ -96,13 +111,34 @@ def get_batch(split):
     """Each sample gets a random mask rate from U[0,1], then each token is
     independently masked with that probability. Returns (x, y, mask).
     Built on CPU; transferred to device with pinned+non_blocking when CUDA."""
-    d = train_data if split == "train" else val_data
-    idx = torch.randint(len(d) - block_size, (batch_size,))
-    x = torch.stack([d[i : i + block_size] for i in idx])
-    y = x.clone()                                              # targets = clean tokens
-    mask_probs = torch.rand(batch_size, 1)                     # one rate per sample
-    mask = torch.rand(batch_size, block_size) < mask_probs     # per-token Bernoulli
-    x[mask] = mask_token_id                                    # replace with MASK
+    global _train_iter, _val_iter
+    if DATA_SOURCE == "shakespeare":
+        d = train_data if split == "train" else val_data
+        idx = torch.randint(len(d) - block_size, (batch_size,))
+        x = torch.stack([d[i : i + block_size] for i in idx])
+    else:
+        loader = _train_loader if split == "train" else _val_loader
+        it = _train_iter if split == "train" else _val_iter
+        if it is None:
+            it = iter(loader)
+            if split == "train":
+                _train_iter = it
+            else:
+                _val_iter = it
+        try:
+            blocks = next(it)
+        except StopIteration:
+            it = iter(loader)
+            if split == "train":
+                _train_iter = it
+            else:
+                _val_iter = it
+            blocks = next(it)
+        x = blocks  # (B, block_size)
+    y = x.clone()
+    mask_probs = torch.rand(batch_size, 1)
+    mask = torch.rand(batch_size, block_size) < mask_probs
+    x[mask] = mask_token_id
     return _to_device(x, y, mask)
 
 # ============================================================================
@@ -233,7 +269,8 @@ def estimate_loss(model):
 def train():
     print(f"Training Diffusion LM on {device}")
     print(f"Architecture: {n_layer}L / {n_head}H / {n_embd}E ({head_dim}D)")
-    print(f"Vocab: {vocab_size} chars ({vocab_size - 1} Shakespeare + 1 MASK)")
+    data_desc = "OpenWebText" if DATA_SOURCE == "openwebtext" else "Shakespeare"
+    print(f"Data: {data_desc} — vocab {vocab_size} chars")
     print(f"Training for {max_iters} iterations")
     print("=" * 60)
 
@@ -300,7 +337,10 @@ def generate(model, max_new_tokens=500, prompt_len=16, num_steps=40,
     4. SUBS: logits[:, :, MASK] = -∞  (never predict MASK)
     """
     model.eval()
-    prompt = data[:prompt_len].tolist()
+    if DATA_SOURCE == "openwebtext" and _prompt_block is not None:
+        prompt = _prompt_block[:prompt_len].tolist()
+    else:
+        prompt = data[:prompt_len].tolist()
     gen_len = min(max_new_tokens, block_size) - prompt_len
 
     x = torch.full((1, gen_len + prompt_len), mask_token_id,
@@ -350,7 +390,9 @@ def generate(model, max_new_tokens=500, prompt_len=16, num_steps=40,
 # ============================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Discrete Diffusion LM on Tiny Shakespeare")
+    parser = argparse.ArgumentParser(description="Discrete Diffusion LM")
+    parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext"],
+                        help="Dataset: shakespeare (tiny) or openwebtext (default: shakespeare)")
     parser.add_argument("--train", action="store_true", help="Train the model")
     parser.add_argument("--generate", action="store_true", help="Generate text from saved weights")
     parser.add_argument("--tokens", type=int, default=500, help="Tokens to generate (default: 500)")

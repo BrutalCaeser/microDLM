@@ -2,9 +2,9 @@
 """
 gpt.py — Autoregressive GPT Language Model from Scratch
 ========================================================
-A single-file implementation of a character-level GPT trained on Tiny
-Shakespeare. Everything is here: data loading, model definition, training
-loop, and generation.
+A single-file implementation of a character-level GPT. Train on Tiny
+Shakespeare (--data shakespeare) or OpenWebText (--data openwebtext).
+Everything is here: data loading, model definition, training loop, and generation.
 
 The entire model is ~10.7M parameters with the default 6L/6H/384E architecture.
 
@@ -49,28 +49,42 @@ device = (
     else ("mps" if torch.backends.mps.is_available() else "cpu")
 )
 
+# Parse --data before loading
+_data_parser = argparse.ArgumentParser()
+_data_parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext"])
+_DATA_ARGS, _ = _data_parser.parse_known_args()
+DATA_SOURCE = _DATA_ARGS.data
+
 # ============================================================================
-# Data — Tiny Shakespeare
+# Data — Shakespeare or OpenWebText
 # ============================================================================
 
-data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "shakespeare.txt")
-with open(data_path, "r", encoding="utf-8") as f:
-    text = f.read()
+train_data = val_data = data = None
+_train_loader = _val_loader = None
+_train_iter = _val_iter = None
+_prompt_block = None
 
-chars = sorted(list(set(text)))
-MASK_CHAR = "_"                                                # ← DIFF 1: keep MASK for
-chars_with_mask = [MASK_CHAR] + chars                          #   fair param comparison,
-vocab_size = len(chars_with_mask)                              #   but it's never used
-
-stoi = {ch: i for i, ch in enumerate(chars_with_mask)}
-itos = {i: ch for i, ch in enumerate(chars_with_mask)}
-
-encode = lambda s: [stoi[ch] for ch in s]
-decode = lambda l: "".join([itos[i] for i in l])
-
-data = torch.tensor(encode(text), dtype=torch.long)
-n = int(0.9 * len(data))
-train_data, val_data = data[:n], data[n:]
+if DATA_SOURCE == "shakespeare":
+    data_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "shakespeare.txt")
+    with open(data_path, "r", encoding="utf-8") as f:
+        text = f.read()
+    chars = sorted(list(set(text)))
+    MASK_CHAR = "_"
+    chars_with_mask = [MASK_CHAR] + chars
+    vocab_size = len(chars_with_mask)
+    stoi = {ch: i for i, ch in enumerate(chars_with_mask)}
+    itos = {i: ch for i, ch in enumerate(chars_with_mask)}
+    encode = lambda s: [stoi[ch] for ch in s]
+    decode = lambda l: "".join([itos[i] for i in l])
+    data = torch.tensor(encode(text), dtype=torch.long)
+    n = int(0.9 * len(data))
+    train_data, val_data = data[:n], data[n:]
+else:
+    from data_openwebtext import load_openwebtext
+    _train_loader, _val_loader, stoi, itos, vocab_size, _mask_id, encode, decode = load_openwebtext(
+        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
+    )
+    _prompt_block = next(iter(_val_loader))[0][0].clone()
 
 # ============================================================================
 # Batching — Next-Token Prediction                             # ← DIFF 3/4
@@ -92,10 +106,32 @@ def _to_device(*tensors):
 def get_batch(split):
     """Standard autoregressive batching: x[i] → y[i] = x[i+1].
     Built on CPU; transferred to device with pinned+non_blocking when CUDA."""
-    d = train_data if split == "train" else val_data
-    idx = torch.randint(len(d) - block_size, (batch_size,))
-    x = torch.stack([d[i : i + block_size] for i in idx])
-    y = torch.stack([d[i + 1 : i + block_size + 1] for i in idx])
+    global _train_iter, _val_iter
+    if DATA_SOURCE == "shakespeare":
+        d = train_data if split == "train" else val_data
+        idx = torch.randint(len(d) - block_size, (batch_size,))
+        x = torch.stack([d[i : i + block_size] for i in idx])
+        y = torch.stack([d[i + 1 : i + block_size + 1] for i in idx])
+    else:
+        loader = _train_loader if split == "train" else _val_loader
+        it = _train_iter if split == "train" else _val_iter
+        if it is None:
+            it = iter(loader)
+            if split == "train":
+                _train_iter = it
+            else:
+                _val_iter = it
+        try:
+            blocks = next(it)
+        except StopIteration:
+            it = iter(loader)
+            if split == "train":
+                _train_iter = it
+            else:
+                _val_iter = it
+            blocks = next(it)
+        x = blocks[:, :-1]
+        y = blocks[:, 1:]
     return _to_device(x, y)
 
 # ============================================================================
@@ -222,7 +258,8 @@ def estimate_loss(model):
 def train():
     print(f"Training GPT on {device}")
     print(f"Architecture: {n_layer}L / {n_head}H / {n_embd}E ({head_dim}D)")
-    print(f"Vocab: {vocab_size} chars (same as diffusion for fair comparison)")
+    data_desc = "OpenWebText" if DATA_SOURCE == "openwebtext" else "Shakespeare"
+    print(f"Data: {data_desc} — vocab {vocab_size} chars")
     print(f"Training for {max_iters} iterations")
     print("=" * 60)
 
@@ -281,7 +318,10 @@ def train():
 def generate(model, max_new_tokens=500, prompt_len=16, temp=0.8):
     """Standard autoregressive generation: one token at a time, left to right."""
     model.eval()
-    x = data[:prompt_len].unsqueeze(0).to(device)
+    if DATA_SOURCE == "openwebtext" and _prompt_block is not None:
+        x = _prompt_block[:prompt_len].unsqueeze(0).to(device)
+    else:
+        x = data[:prompt_len].unsqueeze(0).to(device)
 
     for _ in range(max_new_tokens):
         ctx = x[:, -block_size:]
@@ -300,7 +340,9 @@ def generate(model, max_new_tokens=500, prompt_len=16, temp=0.8):
 # ============================================================================
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="GPT Language Model on Tiny Shakespeare")
+    parser = argparse.ArgumentParser(description="GPT Language Model")
+    parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext"],
+                        help="Dataset: shakespeare (tiny) or openwebtext (default: shakespeare)")
     parser.add_argument("--train", action="store_true", help="Train the model")
     parser.add_argument("--generate", action="store_true", help="Generate text from saved weights")
     parser.add_argument("--tokens", type=int, default=500, help="Tokens to generate (default: 500)")
