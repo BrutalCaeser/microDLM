@@ -82,13 +82,13 @@ if DATA_SOURCE == "shakespeare":
 elif DATA_SOURCE == "openwebtext":
     from data_openwebtext import load_openwebtext
     _train_loader, _val_loader, stoi, itos, vocab_size, _mask_id, encode, decode = load_openwebtext(
-        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
+        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device == "cuda")
     )
     _prompt_block = next(iter(_val_loader))[0][0].clone()
 else:  # fineweb
     from data_fineweb import load_fineweb_edu
     _train_loader, _val_loader, stoi, itos, vocab_size, _mask_id, encode, decode = load_fineweb_edu(
-        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
+        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device == "cuda")
     )
     _prompt_block = next(iter(_val_loader))[0][0].clone()
 
@@ -101,7 +101,7 @@ def _to_device(*tensors):
     is not blocked waiting on transfer (enables overlap with next batch prep)."""
     out = []
     for t in tensors:
-        if device.type == "cuda":
+        if device == "cuda":
             t = t.pin_memory().to(device, non_blocking=True)
         else:
             t = t.to(device)
@@ -277,7 +277,7 @@ def train():
 
     # Phase 2: Move model to GPU once; sync so we're in a clean state.
     model.to(device)
-    if device.type == "cuda":
+    if device == "cuda":
         torch.cuda.synchronize()
     log = []
     start = time.time()
