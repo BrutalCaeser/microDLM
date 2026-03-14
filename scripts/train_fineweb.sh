@@ -23,9 +23,9 @@ echo "Job ID: $SLURM_JOB_ID"
 echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader)"
 
 # Load modules
-module load anaconda3/2024.06
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate microdlm
+
+
+
 
 cd ~/microDLM
 
@@ -37,11 +37,11 @@ export HF_DATASETS_CACHE="$HOME/microDLM/data/fineweb"
 
 echo ""
 echo "=== Training Diffusion LM ==="
-python diffusion.py --data fineweb --train
+/home/gupta.yashv/.conda/envs/microdlm/bin/python diffusion.py --data fineweb --train
 
 echo ""
 echo "=== Training GPT ==="
-python gpt.py --data fineweb --train
+/home/gupta.yashv/.conda/envs/microdlm/bin/python gpt.py --data fineweb --train
 
 echo ""
 echo "End time: $(date)"

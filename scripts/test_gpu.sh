@@ -22,9 +22,9 @@ echo "Node:   $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
 
 # ---- modules ----------------------------------------------------------------
-module load anaconda3/2024.06
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate microdlm
+
+
+
 
 cd ~/microDLM
 mkdir -p logs
@@ -37,7 +37,7 @@ nvidia-smi --query-gpu=name,memory.total,driver_version --format=csv,noheader
 # ---- PyTorch check ----------------------------------------------------------
 echo ""
 echo "--- PyTorch / CUDA ---"
-python -c "
+/home/gupta.yashv/.conda/envs/microdlm/bin/python -c "
 import torch
 print(f'PyTorch:   {torch.__version__}')
 print(f'CUDA:      {torch.version.cuda}')
@@ -62,7 +62,7 @@ ls -lh diffusion.py gpt.py data/shakespeare.txt weights/diffusion.pt 2>/dev/null
 # ---- import check -----------------------------------------------------------
 echo ""
 echo "--- Import check ---"
-python -c "
+/home/gupta.yashv/.conda/envs/microdlm/bin/python -c "
 import torch, math, json, os, sys
 print('stdlib + torch: OK')
 # Make sure the model definition loads without errors

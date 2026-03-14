@@ -30,9 +30,9 @@ echo "Node:   $(hostname)"
 echo "Job ID: $SLURM_JOB_ID"
 
 # ---- modules ----------------------------------------------------------------
-module load anaconda3/2024.06
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate microdlm
+
+
+
 
 cd ~/microDLM
 mkdir -p logs weights
@@ -58,13 +58,13 @@ fi
 # ---- train diffusion model -------------------------------------------------
 echo ""
 echo "=== Training Diffusion LM ==="
-python diffusion.py --data shakespeare --train
+/home/gupta.yashv/.conda/envs/microdlm/bin/python diffusion.py --data shakespeare --train
 echo "Diffusion training done."
 
 # ---- train GPT baseline ----------------------------------------------------
 echo ""
 echo "=== Training GPT (baseline) ==="
-python gpt.py --data shakespeare --train
+/home/gupta.yashv/.conda/envs/microdlm/bin/python gpt.py --data shakespeare --train
 echo "GPT training done."
 
 # ---- verify weights saved --------------------------------------------------
@@ -75,11 +75,11 @@ ls -lh weights/
 # ---- quick generation sample -----------------------------------------------
 echo ""
 echo "=== Generation Sample (Diffusion) ==="
-python diffusion.py --data shakespeare --generate --tokens 200 --steps 40
+/home/gupta.yashv/.conda/envs/microdlm/bin/python diffusion.py --data shakespeare --generate --tokens 200 --steps 40
 
 echo ""
 echo "=== Generation Sample (GPT) ==="
-python gpt.py --data shakespeare --generate --tokens 200
+/home/gupta.yashv/.conda/envs/microdlm/bin/python gpt.py --data shakespeare --generate --tokens 200
 
 echo ""
 echo "=== Phase 0 COMPLETE ==="

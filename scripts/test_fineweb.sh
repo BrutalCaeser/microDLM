@@ -16,9 +16,9 @@ echo "=== FineWeb-Edu Loader Test ==="
 echo "Start time: $(date)"
 
 # Load modules
-module load anaconda3/2024.06
-source $(conda info --base)/etc/profile.d/conda.sh
-conda activate microdlm
+
+
+
 
 cd ~/microDLM
 
@@ -28,7 +28,7 @@ mkdir -p logs
 # Test the data loader
 echo ""
 echo "Testing FineWeb-Edu streaming loader..."
-python data_fineweb.py
+/home/gupta.yashv/.conda/envs/microdlm/bin/python data_fineweb.py
 
 echo ""
 echo "End time: $(date)"
