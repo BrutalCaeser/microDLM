@@ -16,6 +16,7 @@
 #SBATCH --error=logs/fineweb_train_%j.err
 
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=== microDLM Training on FineWeb-Edu ==="
 echo "Start time: $(date)"

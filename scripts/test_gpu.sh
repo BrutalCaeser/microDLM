@@ -15,6 +15,7 @@
 #SBATCH --error=logs/test_gpu_%j.err
 
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=== microDLM GPU Environment Test ==="
 echo "Date:   $(date)"

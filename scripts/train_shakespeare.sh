@@ -23,6 +23,7 @@
 #SBATCH --error=logs/shakespeare_%j.err
 
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=== microDLM Shakespeare Training (Phase 0 Validation) ==="
 echo "Date:   $(date)"

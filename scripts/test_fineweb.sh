@@ -11,6 +11,7 @@
 #SBATCH --error=logs/fineweb_test_%j.err
 
 set -e
+export PYTHONUNBUFFERED=1
 
 echo "=== FineWeb-Edu Loader Test ==="
 echo "Start time: $(date)"
