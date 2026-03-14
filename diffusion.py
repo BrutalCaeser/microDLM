@@ -52,7 +52,7 @@ device = (
 
 # Parse --data before loading so we know which dataset to use
 _data_parser = argparse.ArgumentParser()
-_data_parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext"])
+_data_parser.add_argument("--data", default="shakespeare", choices=["shakespeare", "openwebtext", "fineweb"])
 _DATA_ARGS, _ = _data_parser.parse_known_args()
 DATA_SOURCE = _DATA_ARGS.data
 
@@ -82,12 +82,18 @@ if DATA_SOURCE == "shakespeare":
     data = torch.tensor(encode(text), dtype=torch.long)
     n = int(0.9 * len(data))
     train_data, val_data = data[:n], data[n:]
-else:
+elif DATA_SOURCE == "openwebtext":
     from data_openwebtext import load_openwebtext
     _train_loader, _val_loader, stoi, itos, vocab_size, mask_token_id, encode, decode = load_openwebtext(
         block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
     )
     # Prompt for generation: first block from first val batch
+    _prompt_block = next(iter(_val_loader))[0][0].clone()
+else:  # fineweb
+    from data_fineweb import load_fineweb_edu
+    _train_loader, _val_loader, stoi, itos, vocab_size, mask_token_id, encode, decode = load_fineweb_edu(
+        block_size=block_size, batch_size=batch_size, num_workers=0, pin_memory=(device.type == "cuda")
+    )
     _prompt_block = next(iter(_val_loader))[0][0].clone()
 
 # ============================================================================
