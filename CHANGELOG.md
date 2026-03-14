@@ -77,6 +77,16 @@ starting from the Shakespeare dataset with zero architecture changes.
 - Root cause: files had been manually copied to HPC before being committed; git refused to overwrite them
 - Fix: `rm HPC_DATASET_SETUP_LOG.md hpc_gpu_inventory.md` then re-checkout
 
+**Issue 4: Python output not appearing in SLURM logs**
+- Symptom: training started (header printed) but no step-level loss lines appearing after 10+ minutes
+- Root cause: Python buffers stdout in non-interactive batch jobs; prints don't flush until buffer fills or program exits
+- Fix: added `export PYTHONUNBUFFERED=1` to all four SLURM scripts
+
+**Issue 5: `AttributeError: 'str' object has no attribute 'type'` in `diffusion.py` and `gpt.py`**
+- Symptom: job crashed immediately after printing parameter count, before step 0
+- Root cause: `device` is assigned as a plain string (`"cuda"`), but code called `device.type` which is only valid on `torch.device` objects. Never triggered locally because Mac uses MPS, so the CUDA branch was never reached
+- Fix: replaced all `device.type == "cuda"` with `device == "cuda"` across both files (8 occurrences total)
+
 ---
 
 ### Phase 0 Results
@@ -84,7 +94,7 @@ starting from the Shakespeare dataset with zero architecture changes.
 | Test | Status | Details |
 |------|--------|---------|
 | GPU test (`test_gpu.sh`) | **PASSED** | V100-SXM2-32GB, 34.1GB, CUDA 12.1, PyTorch 2.5.1 |
-| Shakespeare training | In progress | Job 5069979, step 0 evaluation running |
+| Shakespeare training | **RUNNING** | Training confirmed working after device.type fix |
 
 ---
 
