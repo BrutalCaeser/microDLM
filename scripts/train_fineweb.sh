@@ -24,7 +24,8 @@ echo "GPU: $(nvidia-smi --query-gpu=name --format=csv,noheader)"
 
 # Load modules
 module load anaconda3/2024.06
-source activate microdlm
+source $(conda info --base)/etc/profile.d/conda.sh
+conda activate microdlm
 
 cd ~/microDLM
 
