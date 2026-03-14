@@ -31,7 +31,7 @@ echo "Job ID: $SLURM_JOB_ID"
 
 # ---- modules ----------------------------------------------------------------
 module load anaconda3/2024.06
-conda activate microdlm
+source activate microdlm
 
 cd ~/microDLM
 mkdir -p logs weights

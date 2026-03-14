@@ -17,7 +17,7 @@ echo "Start time: $(date)"
 
 # Load modules
 module load anaconda3/2024.06
-conda activate microdlm
+source activate microdlm
 
 cd ~/microDLM
 
